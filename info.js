@@ -51,9 +51,12 @@ async function get_info_av_bvid(aid,bvid){
     let response = await fetch(url.toString(),options).then(response => response.json())
     if (response.code === 0){
          return  {aiv: response.data.aid, bvid: response.data.bvid, list: response.data.pages}
-    }else {
+    }else if (response.code === 62012) {
+        console.log('仅UP主自己可见')
+    } else {
         console.log('获取视频信息失败')
     }
+    process.exit(0)
 }
 
 async function get_info_bangumi(season_id,ep_id){
@@ -66,11 +69,12 @@ async function get_info_bangumi(season_id,ep_id){
         return  response.result.episodes
     }else {
         console.log('获取视频信息失败')
+        process.exit(0)
     }
 }
 
 //console.log(await get_info('https://www.bilibili.com/video/BV1hboNYmEuQ/?spm_id_from=333.788.recommend_more_video.2&vd_source=52631a42a3c38d92ade2b122efc5106e'))
- //console.log(await get_info('https://www.bilibili.com/video/av332121/?spm_id_fro'))
+//console.log(await get_info('https://www.bilibili.com/video/av332121/?spm_id_fro'))
 //console.log(await get_info('https://www.bilibili.com/bangumi/media/md25577961'))
 // console.log(await get_info('https://www.bilibili.com/bangumi/play/ss425?from_spmid=666.4.mylist.1'))
 // console.log(await get_info('https://www.bilibili.com/bangumi/play/ep1530739?from_spmid=666.19.0.0'))

@@ -13,8 +13,14 @@ class Check {
     }
 
     static async is_vip() {
-        let bool = await fetch('https://api.bilibili.com/x/vip/privilege/my',options).then(response => response.json())
-        return bool.data.is_vip
+        let data = await fetch('https://api.bilibili.com/x/vip/privilege/my',options).then(response => response.json())
+        if (data.code === -101){
+            console.log(data.message)
+        } else if (data.data.is_vip){
+            console.log('拥有大会员')
+        }else {
+            console.log('未拥有大会员,无法下载高清视频')
+        }
     }
 }
 
