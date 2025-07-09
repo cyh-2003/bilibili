@@ -1,4 +1,5 @@
 import options from "./options.js"
+import { exec } from 'child_process'
 
 class Check {
     static is_url(url) {
@@ -10,6 +11,14 @@ class Check {
     }
     static is_av(av) {
         return /^[1-9]\d{5,}$/.test(av)
+    }
+
+    static check_ffmpeg(){
+        exec('ffmpeg -version', (error, stdout, stderr) => {
+      if (error) {
+        console.log('未检测到FFmpeg')
+        process.exit()
+      }})
     }
 
     static async is_vip() {

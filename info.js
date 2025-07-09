@@ -25,7 +25,7 @@ async function get_info(input){
         const mdMatch = input.match(/(md\d+)/)
         if (mdMatch) return await get_info(mdMatch[0])
         console.log("URL中未找到有效的视频标识")
-        process.exit(0)
+        process.exit()
     } else if (str.includes("av")) {
         return await get_info_av_bvid(input.replace("av",""))
     } else if (str.includes("bv")) {
