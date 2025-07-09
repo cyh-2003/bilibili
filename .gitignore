@@ -34,5 +34,5 @@ bin/
 
 ffmpeg.exe
 *.mp4
-*.m4a
+*.m4s
 cookie.json

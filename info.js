@@ -56,7 +56,7 @@ async function get_info_av_bvid(aid,bvid){
     } else {
         console.log('获取视频信息失败')
     }
-    process.exit(0)
+    process.exit()
 }
 
 async function get_info_bangumi(season_id,ep_id){
@@ -73,9 +73,4 @@ async function get_info_bangumi(season_id,ep_id){
     }
 }
 
-//console.log(await get_info('https://www.bilibili.com/video/BV1hboNYmEuQ/?spm_id_from=333.788.recommend_more_video.2&vd_source=52631a42a3c38d92ade2b122efc5106e'))
-//console.log(await get_info('https://www.bilibili.com/video/av332121/?spm_id_fro'))
-//console.log(await get_info('https://www.bilibili.com/bangumi/media/md25577961'))
-// console.log(await get_info('https://www.bilibili.com/bangumi/play/ss425?from_spmid=666.4.mylist.1'))
-// console.log(await get_info('https://www.bilibili.com/bangumi/play/ep1530739?from_spmid=666.19.0.0'))
 export default get_info

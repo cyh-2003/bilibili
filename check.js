@@ -23,7 +23,10 @@ class Check {
 
     static async is_vip() {
         let data = await fetch('https://api.bilibili.com/x/vip/privilege/my',options).then(response => response.json())
-        if (data.code === -101){
+        if (data.code === -400){
+            console.log(data.message+'cookie.json填写错误')
+            process.exit()
+        } else if (data.code === -101){
             console.log(data.message)
         } else if (data.data.is_vip){
             console.log('拥有大会员')
