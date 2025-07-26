@@ -1,5 +1,6 @@
 import options from "./options.js"
 import readline from "node:readline/promises"
+import wei from "./wei.js"
 import {stdin as input, stdout as output} from "process"
 import fs from "node:fs"
 const r = readline.createInterface({ input, output,terminal: false })
@@ -17,7 +18,12 @@ class Download {
   { id: 30250, name: '杜比全景声' },
   { id: 30251, name: 'Hi-Res无损' }
 ]
-    #download_choose = []
+    #codec = [
+        { id: 7, name: 'AVC' },
+        { id: 12, name: 'HEVC' },
+        { id: 13, name: 'AV1' },
+    ]
+    #download_choose = {}
     #type
     constructor(data) {
         if ('list' in data){
@@ -76,9 +82,9 @@ class Download {
                     console.log('输入错误')
                     process.exit()
                 }
-                video_type === 'video'? this.#cid :this.#arrary = arg.slice(start-1, end)
+                video_type === 'video'? this.#cid = arg.slice(start-1, end) :this.#arrary = arg.slice(start-1, end)
             }else {
-                video_type === 'video'? this.#cid : this.#arrary = new Array(arg[start - 1])
+                video_type === 'video'? this.#cid = new Array(arg[start - 1]) : this.#arrary = new Array(arg[start - 1])
             }
         }
     }
@@ -107,62 +113,81 @@ class Download {
     async #download(url,i,arg= true) {
         const res = await fetch(url, options).then(response => response.json())
         let data = (arg ? res.data : res.result.video_info)
-        if (this.#download_choose.length == 0) {
+        if (Object.getOwnPropertyNames(this.#download_choose).length === 0) {
             if (res.code === 0) {
                 data.support_formats.forEach(e => {
                         console.log('|' + e.new_description + '|' + e.quality + '|')
                     }
                 )
                 let video_quality = await r.question('请选择视频清晰度')
-                this.#download_choose.push(video_quality)
+                let codec = data.dash.video
+                    .filter(item => item.id === Number(video_quality))
+                    .map(item => item.codecid)
+
+                codec.forEach(item => {
+                    let codecInfo = this.#codec.find(c => c.id === item)
+                    console.log(`| ${codecInfo.id} | ${codecInfo.name} |`)
+                })
+                let codec_quality = await r.question('请选择视频编码')
+                let video_choose_obj = data.dash.video
+                    .filter(item => item.id === Number(video_quality))
+
+                this.#download_choose.url = video_choose_obj.find(stream => stream.codecid === Number(codec_quality)).baseUrl
+
                 let temp = data.dash.audio.map(item => item.id)
                 temp = this.#audioOptions.filter(option => temp.includes(option.id))
                 temp.forEach(option => {
                     console.log(`| ${option.id} | ${option.name} |`)
                 })
-                if (arg) {
-                    let flac = data.dash.flac.audio,dolby = data.dash.dolby.audio
-                    if (flac) {
-                        let temp = new Array(flac).map(item => item.id)
-                        temp = this.#audioOptions.filter(option => temp.includes(option.id))
-                        temp.forEach(option => {
-                            console.log(`| ${option.id} | ${option.name} |`)
-                        })
-                    }
-                    if (dolby) {
-                        let temp = dolby.map(item => item.id)
-                        temp = this.#audioOptions.filter(option => temp.includes(option.id))
-                        temp.forEach(option => {
-                            console.log(`| ${option.id} | ${option.name} |`)
-                        })
-                    }
+                let flac = data?.dash?.flac?.audio,dolby = data?.dash?.flac?.audio
+                if (flac) {
+                    let temp = new Array(flac).map(item => item.id)
+                    temp = this.#audioOptions.filter(option => temp.includes(option.id))
+                    temp.forEach(option => {
+                        console.log(`| ${option.id} | ${option.name} |`)
+                    })
+                }
+                if (dolby) {
+                    let temp = dolby.map(item => item.id)
+                    temp = this.#audioOptions.filter(option => temp.includes(option.id))
+                    temp.forEach(option => {
+                        console.log(`| ${option.id} | ${option.name} |`)
+                    })
                 }
                 let audio_quality = await r.question('请选择音频清晰度')
-                this.#download_choose.push(audio_quality)
+                this.#download_choose.audio_quality = Number(audio_quality)
             }
         }
         let temp = data.dash.video.find(item => item.id === Number(this.#download_choose[0]))
         console.log(`开始下载第${i + 1}个:${arg ? this.#cid[i].part :this.#arrary[i].title}`)
-        let video = await this.#download_AJAX(temp.baseUrl)
+        let video = await this.#download_AJAX(this.#download_choose.url)
         fs.writeFileSync("./video.m4s", video)
         console.log('\n下载音频')
-        if (Number(this.#download_choose[1]) == 30250){
+        if (this.#download_choose.audio_quality == 30250){
             //杜比全景声
-            temp = data.dash.dolby.audio.find(item => item.id === Number(this.#download_choose[1]))
-        }else if (Number(this.#download_choose[1]) == 30251){
+            temp = data.dash.dolby.audio.find(item => item.id === this.#download_choose.audio_quality)
+        }else if (this.#download_choose.audio_quality == 30251){
             //Hi-Res无损
             temp = data.dash.flac.audio
         } else {
-            temp = data.dash.audio.find(item => item.id === Number(this.#download_choose[1]))
+            temp = data.dash.audio.find(item => item.id === this.#download_choose.audio_quality)
         }
         let audio = await this.#download_AJAX(temp.baseUrl)
         fs.writeFileSync("./audio.m4s", audio)
         console.log('\n开始合并')
+        if (!this.#type) this.#type = 'video/mp4'
         execSync(`ffmpeg -i video.m4s -i audio.m4s -c:v copy -c:a copy -f ${this.#type.split('/').pop()} "${(arg ? this.#cid[i].part :this.#arrary[i].title)}.${this.#type.split('/').pop()}"`, {stdio: 'ignore'})
         console.log('合并完成')
         fs.unlinkSync('./video.m4s')
         fs.unlinkSync('./audio.m4s')
     }
-}
 
+    static async text_wei() {
+        fetch(`https://api.bilibili.com/x/player/wbi/playurl?${await wei(
+            62131,2,'BV1xx411c7mD')}&qn=127&type&otype=json&fnver=0&fnval=4048&fourk=1`,options).
+        then(res => res.json())
+            .then(res =>
+                console.log(res))
+    }
+}
 export default Download

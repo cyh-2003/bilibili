@@ -33,6 +33,20 @@ bin/
 .DS_Store
 
 ffmpeg.exe
+cookie.json
+text.js
+
+# Media files
+*.m4a
+*.mp3
+*.flac
 *.mp4
+*.mkv
+*.mov
 *.m4s
+
+# Node.js
+node_modules
+
+# cookie
 cookie.json

@@ -39,7 +39,7 @@ async function get_info(input){
         return await get_info_bangumi(ssd)
     } else {
         console.log("输入错误")
-        process.exit(0)
+        process.exit()
     }
 }
 
@@ -69,7 +69,7 @@ async function get_info_bangumi(season_id,ep_id){
         return  response.result.episodes
     }else {
         console.log('获取视频信息失败')
-        process.exit(0)
+        process.exit()
     }
 }
 
