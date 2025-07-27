@@ -143,52 +143,19 @@ class Download {
             let data = (arg ? res.data : res.result.video_info)
             if (Object.getOwnPropertyNames(this.#download_choose).length === 0) {
                 if (res.code === 0) {
-                    let temp = data.dash.video.map(item => item.id)
-                    temp = this.#videoOptions.filter(option => temp.includes(option.id))
-                    temp.forEach(option => {
-                        console.log(`| ${option.id} | ${option.name} |`)
-                    })
-                    this.#download_choose.video_quality = Number(await r.question('请选择视频清晰度'))
-                    let codec = data.dash.video
-                        .filter(item => item.id === this.#download_choose.video_quality)
-                        .map(item => item.codecid)
-
-                    codec.forEach(item => {
-                        let codecInfo = this.#codec.find(c => c.id === item)
-                        console.log(`| ${codecInfo.id} | ${codecInfo.name} |`)
-                    })
-                    this.#download_choose.codec_quality = Number(await r.question('请选择视频编码'))
-
-                    temp = data.dash.audio.map(item => item.id)
-                    temp = this.#audioOptions.filter(option => temp.includes(option.id))
-                    temp.forEach(option => {
-                        console.log(`| ${option.id} | ${option.name} |`)
-                    })
-                    let flac = data?.dash?.flac?.audio,dolby = data?.dash?.flac?.audio
-                    if (flac) {
-                        let temp = new Array(flac).map(item => item.id)
-                        temp = this.#audioOptions.filter(option => temp.includes(option.id))
-                        temp.forEach(option => {
-                            console.log(`| ${option.id} | ${option.name} |`)
-                        })
-                    }
-                    if (dolby) {
-                        let temp = dolby.map(item => item.id)
-                        temp = this.#audioOptions.filter(option => temp.includes(option.id))
-                        temp.forEach(option => {
-                            console.log(`| ${option.id} | ${option.name} |`)
-                        })
-                    }
-                    let audio_quality = await r.question('请选择音频清晰度')
-                    this.#download_choose.audio_quality = Number(audio_quality)
+                    await this.#choose_video(data)
+                    await this.#choose_codec(data)
+                    await this.#choose_audio(data)
                 } else {
                     console.log('获取信息失败')
                     process.exit()
                 }
             }
+            //检测选择是否符合视频
+            await this.#check_choose(data)
+
             let video_choose_obj = data.dash.video
                 .filter(item => item.id === this.#download_choose.video_quality)
-
             this.#download_choose.url = video_choose_obj.find(item => item.codecid === this.#download_choose.codec_quality).baseUrl
             let temp
             console.log(`开始下载第${i + 1}个:${arg ? this.#cid[i].part :this.#arrary[i].title}`)
@@ -218,7 +185,101 @@ class Download {
         }
     }
 
-    static async text_wei() {
+    async #choose_video(data) {
+        let temp = data.dash.video.map(item => item.id)
+        temp = this.#videoOptions.filter(option => temp.includes(option.id))
+        temp.forEach(option => {
+            console.log(`| ${option.id} | ${option.name} |`)
+        })
+        while (true){
+            let video_quality = Number(await r.question('请选择清晰度'))
+            if (temp.find(item => item.id === video_quality)){
+                this.#download_choose.video_quality = video_quality
+                break
+            }else {
+                console.log('输入错误')
+            }
+        }
+    }
+
+    async #choose_codec(data) {
+        let temp = data.dash.video
+            .filter(item => item.id === this.#download_choose.video_quality)
+            .map(item => item.codecid)
+        temp.forEach(item => {
+            let codecInfo = this.#codec.find(c => c.id === item)
+            console.log(`| ${codecInfo.id} | ${codecInfo.name} |`)
+        })
+        while (true){
+            let codec_quality = Number(await r.question('请选择分辨率'))
+            if (temp.includes(codec_quality)){
+                this.#download_choose.codec_quality = codec_quality
+                break
+            } else {
+                console.log('输入错误')
+            }
+        }
+    }
+
+    async #choose_audio(data) {
+        let temp = data.dash.audio.map(item => item.id)
+        temp = this.#audioOptions.filter(option => temp.includes(option.id))
+        temp.forEach(option => {
+            console.log(`| ${option.id} | ${option.name} |`)
+        })
+        let flac = data?.dash?.flac?.audio,dolby = data?.dash?.flac?.audio
+        if (flac) {
+            let temp = new Array(flac).map(item => item.id)
+            temp = this.#audioOptions.filter(option => temp.includes(option.id))
+            temp.forEach(option => {
+                console.log(`| ${option.id} | ${option.name} |`)
+            })
+        }
+        if (dolby) {
+            let temp = dolby.map(item => item.id)
+            temp = this.#audioOptions.filter(option => temp.includes(option.id))
+            temp.forEach(option => {
+                console.log(`| ${option.id} | ${option.name} |`)
+            })
+        }
+
+        while (true) {
+            let audio_quality = Number(await r.question('请选择音频清晰度'))
+            if (temp.find(item => item.id === audio_quality) ||
+                (flac && audio_quality === 30251) ||
+                (dolby && audio_quality === 30250)) {
+                this.#download_choose.audio_quality = audio_quality;
+                break;
+            }
+            console.log('输入错误')
+        }
+    }
+
+    async #check_choose(data){
+        //video
+        let temp = [...new Set(data.dash.video.map(item => item.id))]
+        if (!temp.includes(this.#download_choose.video_quality)){
+            console.log('需重新选择分辨率')
+            await this.#choose_video(data)
+        }
+        //codec
+        temp = [...new Set(data.dash.video.map(item => item.codecid))]
+        if (!temp.includes(this.#download_choose.codec_quality)){
+            console.log('需重新选择编码')
+            await this.#choose_codec(data)
+        }
+        //audio
+        temp = data.dash.audio.map(item => item.id)
+        let flac = data?.dash?.flac?.audio,dolby = data?.dash?.flac?.audio
+        if (!temp.includes(this.#download_choose.audio_quality)){
+            if ((flac&&this.#download_choose.audio_quality === 30251)||(dolby&&this.#download_choose.audio_quality === 30250)){
+                console.log('需重新选择音频')
+                await this.#choose_audio(data)
+            }
+        }
+    }
+
+    static async text_wei_video() {
         fetch(`https://api.bilibili.com/x/player/wbi/playurl?${await wei(
             62131,2,'BV1xx411c7mD')}&qn=127&type&otype=json&fnver=0&fnval=4048&fourk=1`,options).
         then(res => res.json())
