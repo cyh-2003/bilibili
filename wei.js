@@ -55,10 +55,11 @@ async function getWbiKeys() {
 }
 
 async function main(cid, avid, bvid) {
-    const params = {}
-    if (cid) params.cid = cid
-    if (avid) params.avid = avid
-    if (bvid) params.bvid = bvid
+    const params = {
+        ...(cid && { cid }),
+        ...(avid && { avid }),
+        ...(bvid && { bvid })
+    }
     const web_keys = await getWbiKeys()
     , img_key = web_keys.img_key,
         sub_key = web_keys.sub_key
